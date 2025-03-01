@@ -59,13 +59,13 @@ jobs:
           # Build a docker container and
           # push it to ECR so that it can
           # be deployed to ECS.
-          export ECS_SERVICE=$(aws ssm get-parameter --name "/voting-app-ecs/ecs_service_vote_name" --query "Parameter.Value" --output text) >> $GITHUB_OUTPUT
-          export ECS_CLUSTER=$(aws ssm get-parameter --name "/voting-app-ecs/ecs_cluster_id" --query "Parameter.Value" --output text) >> $GITHUB_OUTPUT
-          export ECR_REPOSITORY=$(aws ssm get-parameter --name "/voting-app-ecs/ecr_repo_vote_id" --query "Parameter.Value" --output text) >> $GITHUB_OUTPUT
-          export PRIVATE_SUBNETS=$(aws ssm get-parameter --name "/voting-app-ecs/private_subnets_id" --query "Parameter.Value" --output text) >> $GITHUB_OUTPUT
-          export REDIS_HOST=$(aws ssm get-parameter --name "/voting-app-ecs/redis_host_address" --query "Parameter.Value" --output text) >> $GITHUB_OUTPUT
-          export TASK_ROLE_ARN=$(aws ssm get-parameter --name "/voting-app-ecs/ecs_task_role_arn" --query "Parameter.Value" --output text) >> $GITHUB_OUTPUT
-          export EXEC_ROLE_ARN=$(aws ssm get-parameter --name "/voting-app-ecs/ecs_execution_role_arn" --query "Parameter.Value" --output text) >> $GITHUB_OUTPUT
+          export ECR_REPOSITORY=$(aws ssm get-parameter --name "/voting-app-ecs/ecr_repo_vote_id" --query "Parameter.Value" --output text)
+          export TASK_ROLE_ARN=$(aws ssm get-parameter --name "/voting-app-ecs/ecs_task_role_arn" --query "Parameter.Value" --output text)
+          export EXEC_ROLE_ARN=$(aws ssm get-parameter --name "/voting-app-ecs/ecs_execution_role_arn" --query "Parameter.Value" --output text)
+          echo "ecs_service=$(aws ssm get-parameter --name "/voting-app-ecs/ecs_service_vote_name" --query "Parameter.Value" --output text)" >> $GITHUB_OUTPUT
+          echo "ecs_cluster=$(aws ssm get-parameter --name "/voting-app-ecs/ecs_cluster_id" --query "Parameter.Value" --output text)" >> $GITHUB_OUTPUT
+          echo "private_subnets=$(aws ssm get-parameter --name "/voting-app-ecs/private_subnets_id" --query "Parameter.Value" --output text)" >> $GITHUB_OUTPUT
+          echo "redis_host=$(aws ssm get-parameter --name "/voting-app-ecs/redis_host_address" --query "Parameter.Value" --output text)" >> $GITHUB_OUTPUT
           cd source/vote
           jq --arg task_role "$TASK_ROLE_ARN" --arg exec_role "$EXEC_ROLE_ARN" '.taskRoleArn = $task_role | .executionRoleArn = $exec_role' vote-task-definition.json > updated-vote-task-definition.json
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
@@ -80,7 +80,7 @@ jobs:
           container-name: vote
           image: ${{ steps.build-vote-image.outputs.image }}
           environment-variables: |
-            REDIS_HOST=${{ steps.build-vote-image.outputs.REDIS_HOST }}
+            REDIS_HOST=${{ steps.build-vote-image.outputs.redis_host }}
             REDIS_PORT=6379
           log-configuration-log-driver: awslogs
           log-configuration-options: |
@@ -94,7 +94,7 @@ jobs:
         with:
           task-definition: ${{ steps.task-def.outputs.task-definition }}
           desired-count: 1
-          run-task-subnets: ${{ steps.build-vote-image.outputs.PRIVATE_SUBNETS }}
-          service: ${{ steps.build-vote-image.outputs.ECS_SERVICE }}
-          cluster: ${{ steps.build-vote-image.outputs.ECS_CLUSTER }}
+          run-task-subnets: ${{ steps.build-vote-image.outputs.private_subnets }}
+          service: ${{ steps.build-vote-image.outputs.ecs_service }}
+          cluster: ${{ steps.build-vote-image.outputs.ecs_cluster }}
           wait-for-service-stability: true
