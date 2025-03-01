@@ -69,16 +69,22 @@ jobs:
           ECR_REPOSITORY=$(aws ssm get-parameter --name "/voting-app-ecs/ecr_repo_vote_id" --query "Parameter.Value" --output text)
           PRIVATE_SUBNETS=$(aws ssm get-parameter --name "/voting-app-ecs/private_subnets_id" --query "Parameter.Value" --output text)
           REDIS_HOST=$(aws ssm get-parameter --name "/voting-app-ecs/redis_host_address" --query "Parameter.Value" --output text)
+          TASK_ROLE_ARN=$(aws ssm get-parameter --name ""/voting-app-ecs/ecs_task_role_arn"" --query "Parameter.Value" --output text)
+          EXEC_ROLE_ARN=$(aws ssm get-parameter --name "/voting-app-ecs/ecs_execution_role_arn"" --query "Parameter.Value" --output text)
           cd source/vote
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+          jq --arg task_role "$TASK_ROLE" --arg exec_role "$EXEC_ROLE" '
+            .taskRoleArn = $task_role |
+            .executionRoleArn = $exec_role
+          ' vote-task-definition.json > updated-vote-task-definition.json
 
       - name: Fill in the new image ID for vote in the Amazon ECS task definition
         id: task-def
         uses: aws-actions/amazon-ecs-render-task-definition@f87d1f66e0c6e10caeeb51f8344a0d25c899c533
         with:
-          task-definition: source/vote/vote-task-definition.json
+          task-definition: source/vote/updated-vote-task-definition.json
           container-name: vote
           image: ${{ steps.build-vote-image.outputs.image }}
           environment-variables: |
