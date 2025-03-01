@@ -1,0 +1,88 @@
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
+
+# GitHub recommends pinning actions to a commit SHA.
+# To get a newer version, you will need to update the SHA.
+# You can also reference a tag or branch, but the action may change without warning.
+
+name: Build and deploy Vote container in ECS
+
+# Top level permissions of the workflow
+permissions: {}
+
+# Will run on direct push or PR to "main" branch
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  workflow_dispatch:
+
+env:
+  AWS_REGION: ${{ vars.AWS_REGION }}          # set this to your preferred AWS region, e.g. us-west-1
+  ECR_REPOSITORY: MY_ECR_REPOSITORY           # set this to your Amazon ECR repository name
+  ECS_SERVICE: MY_ECS_SERVICE                 # set this to your Amazon ECS service name
+  ECS_CLUSTER: MY_ECS_CLUSTER                 # set this to your Amazon ECS cluster name
+  ECS_TASK_DEFINITION: MY_ECS_TASK_DEFINITION # set this to the path to your Amazon ECS task definition
+                                               # file, e.g. .aws/task-definition.json
+  CONTAINER_NAME: vote                         # set this to the name of the container in the
+                                               # containerDefinitions section of your task definition
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      - name: Configure AWS OIDC credentials
+        # Use Github OIDC to authenticate to AWS, assumming role
+        id: configure-aws
+        uses: aws-actions/configure-aws-credentials@e3dd6a429d7300a6a4c196c26e071d42e0343502
+        with:
+          role-to-assume: ${{ secrets.AWS_OIDC_ROLE }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Load parameters from AWS SSM Parameter store
+        id: load-from-ssm
+        run: |
+          ECS_SERVICE=$(aws ssm get-parameter --name "/voting-app-ecs/ecs_service_vote_name" --query "Parameter.Value" --output text)
+          ECS_CLUSTER=$(aws ssm get-parameter --name "/voting-app-ecs/ecs_cluster_id" --query "Parameter.Value" --output text)
+          ECR_REPOSITORY=$(aws ssm get-parameter --name "/voting-app-ecs/ecr_repo_vote_id" --query "Parameter.Value" --output text)
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@062b18b96a7aff071d4dc91bc00c4c1a7945b076
+
+      - name: Build, tag, and push vote image to Amazon ECR
+        id: build-vote-image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          # Build a docker container and
+          # push it to ECR so that it can
+          # be deployed to ECS.
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+      - name: Fill in the new image ID for vote in the Amazon ECS task definition
+        id: task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@f87d1f66e0c6e10caeeb51f8344a0d25c899c533
+        with:
+          task-definition: vote-task-definition.json
+          container-name: my-container
+          image: ${{ steps.build-image.outputs.image }}
+
+      - name: Deploy Amazon ECS vote task definition
+        uses: aws-actions/amazon-ecs-deploy-task-definition@8230edfe842008418c5275908cae75e51d3befb2
+        with:
+          task-definition: ${{ steps.task-def.outputs.task-definition }}
+          service: $ECS_SERVICE
+          cluster: $ECS_CLUSTER
+          wait-for-service-stability: true
