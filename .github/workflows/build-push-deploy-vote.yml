@@ -54,9 +54,6 @@ jobs:
       - name: Load parameters from AWS SSM Parameter store
         id: load-from-ssm
         run: |
-          ECS_SERVICE=$(aws ssm get-parameter --name "/voting-app-ecs/ecs_service_vote_name" --query "Parameter.Value" --output text)
-          ECS_CLUSTER=$(aws ssm get-parameter --name "/voting-app-ecs/ecs_cluster_id" --query "Parameter.Value" --output text)
-          ECR_REPOSITORY=$(aws ssm get-parameter --name "/voting-app-ecs/ecr_repo_vote_id" --query "Parameter.Value" --output text)
 
       - name: Login to Amazon ECR
         id: login-ecr
@@ -71,6 +68,12 @@ jobs:
           # Build a docker container and
           # push it to ECR so that it can
           # be deployed to ECS.
+          ECS_SERVICE=$(aws ssm get-parameter --name "/voting-app-ecs/ecs_service_vote_name" --query "Parameter.Value" --output text)
+          ECS_CLUSTER=$(aws ssm get-parameter --name "/voting-app-ecs/ecs_cluster_id" --query "Parameter.Value" --output text)
+          ECR_REPOSITORY=$(aws ssm get-parameter --name "/voting-app-ecs/ecr_repo_vote_id" --query "Parameter.Value" --output text)
+          echo $ECS_SERVICE
+          echo $ECS_CLUSTER
+          echo $ECR_REPOSITORY
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
