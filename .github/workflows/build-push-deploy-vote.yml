@@ -69,8 +69,8 @@ jobs:
           ECR_REPOSITORY=$(aws ssm get-parameter --name "/voting-app-ecs/ecr_repo_vote_id" --query "Parameter.Value" --output text)
           PRIVATE_SUBNETS=$(aws ssm get-parameter --name "/voting-app-ecs/private_subnets_id" --query "Parameter.Value" --output text)
           REDIS_HOST=$(aws ssm get-parameter --name "/voting-app-ecs/redis_host_address" --query "Parameter.Value" --output text)
-          TASK_ROLE_ARN=$(aws ssm get-parameter --name ""/voting-app-ecs/ecs_task_role_arn"" --query "Parameter.Value" --output text)
-          EXEC_ROLE_ARN=$(aws ssm get-parameter --name "/voting-app-ecs/ecs_execution_role_arn"" --query "Parameter.Value" --output text)
+          TASK_ROLE_ARN=$(aws ssm get-parameter --name "/voting-app-ecs/ecs_task_role_arn" --query "Parameter.Value" --output text)
+          EXEC_ROLE_ARN=$(aws ssm get-parameter --name "/voting-app-ecs/ecs_execution_role_arn" --query "Parameter.Value" --output text)
           cd source/vote
           jq --arg task_role "$TASK_ROLE_ARN" --arg exec_role "$EXEC_ROLE_ARN" '.taskRoleArn = $task_role | .executionRoleArn = $exec_role' vote-task-definition.json > updated-vote-task-definition.json
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
