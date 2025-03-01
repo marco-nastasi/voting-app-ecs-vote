@@ -1,7 +1,5 @@
 {
-    "family": "",
-    "taskRoleArn": "",
-    "executionRoleArn": "",
+    "family": "voting-app-ecs",
     "networkMode": "bridge",
     "containerDefinitions": [
         {
