@@ -51,10 +51,6 @@ jobs:
           role-to-assume: ${{ secrets.AWS_OIDC_ROLE }}
           aws-region: ${{ vars.AWS_REGION }}
 
-      - name: Load parameters from AWS SSM Parameter store
-        id: load-from-ssm
-        run: |
-
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@062b18b96a7aff071d4dc91bc00c4c1a7945b076
@@ -74,6 +70,7 @@ jobs:
           echo $ECS_SERVICE
           echo $ECS_CLUSTER
           echo $ECR_REPOSITORY
+          cd vote
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
