@@ -1,13 +1,20 @@
 {
-    "name": "vote",
-    "image": "211125583016.dkr.ecr.us-east-1.amazonaws.com/dev/example-voting-app-vote-port8080:v0.1.0",
-    "essential": true,
-    "portMappings": [
-      {
-        "containerPort": 8080,
-        "hostPort": 8080,
-        "protocol": "tcp"
-      }
+    "family": "",
+    "taskRoleArn": "",
+    "executionRoleArn": "",
+    "networkMode": "bridge",
+    "containerDefinitions": [
+        {
+            "name": "vote",
+            "image": "211125583016.dkr.ecr.us-east-1.amazonaws.com/dev/example-voting-app-vote-port8080:v0.1.0",
+            "essential": true,
+            "portMappings": [
+                {
+                    "containerPort": 8080,
+                    "hostPort": 8080,
+                    "protocol": "tcp"
+                }
+            ]
+        }
     ]
-  }
-  
+}
