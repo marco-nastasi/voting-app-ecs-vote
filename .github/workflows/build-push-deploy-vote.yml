@@ -93,7 +93,7 @@ jobs:
         uses: aws-actions/amazon-ecs-deploy-task-definition@8230edfe842008418c5275908cae75e51d3befb2
         with:
           task-definition: ${{ steps.task-def.outputs.task-definition }}
-          desired-count: 1
+          desired-count: ${{ vars.NUMBER_OF_TASKS }}
           run-task-subnets: ${{ steps.build-vote-image.outputs.private_subnets }}
           service: ${{ steps.build-vote-image.outputs.ecs_service }}
           cluster: ${{ steps.build-vote-image.outputs.ecs_cluster }}
