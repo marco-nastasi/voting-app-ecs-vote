@@ -1,5 +1,5 @@
 {
-    "family": "voting-app-ecs",
+    "family": "voting-app-ecs-vote",
     "networkMode": "awsvpc",
     "taskRoleArn": "",
     "executionRoleArn": "",
